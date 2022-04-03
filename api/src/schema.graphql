@@ -1,0 +1,329 @@
+# These type definitions have been generated from your Neo4j database.
+
+# Here are some Neo4j specific scalars that you can use to map to native Neo4j types:
+# scalar Point
+scalar Date
+scalar DateTime
+scalar BigInt
+
+# Edit these GraphQL type definitions below to change your GraphQL API
+# You can add custom logic defined with Cypher using the @cypher GraphQL schema directive
+# You can refer to the docs at https://grandstack.io
+
+type Query {
+  propertyCount: Int @cypher(statement: "MATCH (p:Property) RETURN COUNT(p)")
+  cityValues: [CityValue]
+    @cypher(
+      statement: """
+      MATCH (c:City) <-[:IN_CITY]-(p:Property)
+      WHERE EXISTS(p.TotalValue)
+      WITH c.name AS city, avg(p.TotalValue) AS average
+      RETURN {city: city, average: average} AS obj
+      """
+    )
+}
+
+type Query {
+  propertyForPoint(latitude: Float, longitude: Float): [Property]
+    @cypher(
+      statement: """
+      MATCH (p:Property) WHERE size(p.polygon) >= 4
+      AND spatial.algo.withinPolygon(Point({latitude:$latitude, longitude:$longitude}), p.polygon)
+      RETURN p
+      """
+    )
+}
+
+type CityValue {
+  city: String
+  average: Float
+}
+
+extend type City {
+  averageValue: Float
+    @cypher(
+      statement: """
+      MATCH (this)<-[:IN_CITY]-(p:Property)
+      RETURN avg(p.TotalValue)
+      """
+    )
+}
+
+type City {
+  _id: BigInt!
+  name: String!
+  propertys: [Property] @relationship(type: "IN_CITY", direction: IN)
+}
+
+type Subdivision {
+  _id: BigInt!
+  name: String!
+  propertys: [Property] @relationship(type: "IN_SUBDIVISION", direction: IN)
+}
+
+type Neighborhood {
+  _id: BigInt!
+  name: String!
+  propertys: [Property] @relationship(type: "IN_NEIGHBORHOOD", direction: IN)
+}
+
+type Appraisal {
+  _id: BigInt!
+  building: Int
+  land: Int
+  method: String
+  property_id: String!
+  total: Int
+  year: Int!
+  propertys: [Property] @relationship(type: "HAS_APPRAISAL", direction: IN)
+}
+
+type Property {
+  _id: BigInt!
+  AddressL_1: String
+  AddressLin: String
+  Assessment: String
+  COUNTYCD: Int!
+  CareOfTaxp: String
+  Certificat: String
+  CityStateZ: String
+  Continuous: Float!
+  CountyAbbr: String!
+  CountyName: String!
+  DbaName: String
+  FallowAcre: Float!
+  FarmsiteAc: Float!
+  ForestAcre: Float!
+  GISAcres: Float!
+  GrazingAcr: Float!
+  IrrigatedA: Float!
+  LegalDescr: String
+  LevyDistri: String
+  NonQualAcr: Float!
+  OwnerAdd_1: String
+  OwnerAdd_2: String
+  OwnerAddre: String
+  OwnerCity: String
+  OwnerName: String
+  OwnerState: String
+  OwnerZipCo: String
+  PropType: String
+  PropertyID: Int!
+  Range: String
+  Section: String
+  Shape_Area: Float!
+  Shape_Leng: Float!
+  Subdivisio: String
+  TaxYear: Int!
+  TotalAcres: Float!
+  TotalBuild: Int!
+  TotalLandV: Int!
+  TotalValue: Int!
+  Township: String
+  WildHayAcr: Float!
+  acres: Float
+  address: String
+  bedrooms: Int
+  category: String
+  full_baths: Int
+  half_baths: Int
+  heating: String
+  id: String!
+  location: Point
+  lot_size: Int
+  polygon: [Point]
+  sqft: Int
+  style: String
+  year_built: Int
+  in_city: [City] @relationship(type: "IN_CITY", direction: OUT)
+  in_subdivision: [Subdivision]
+    @relationship(type: "IN_SUBDIVISION", direction: OUT)
+  in_neighborhood: [Neighborhood]
+    @relationship(type: "IN_NEIGHBORHOOD", direction: OUT)
+  has_appraisal: [Appraisal]
+    @relationship(type: "HAS_APPRAISAL", direction: OUT)
+  photos: [Photo] @ignore
+}
+
+type Photo {
+  url: String
+}
+
+type RawMaterial {
+  _id: BigInt!
+  name: String!
+  suppliers: [Supplier]
+    @relationship(type: "SUPPLY", direction: IN, properties: "supply")
+  artc_warehouses: [ARTC_Warehouse]
+    @relationship(
+      type: "HAS_INVENTORY"
+      direction: IN
+      properties: "has_inventory"
+    )
+  assets: [Asset]
+    @relationship(type: "INPUT", direction: IN, properties: "input")
+}
+
+type Product {
+  _id: BigInt!
+  name: String!
+  consist_of: [RawMaterial] @relationship(type: "CONSIST_OF", direction: OUT)
+  requests: [Request]
+    @relationship(type: "REQUIRE", direction: IN, properties: "require")
+}
+
+type Order {
+  _id: BigInt!
+  orderId: String!
+  consist_of: [RawMaterial] @relationship(type: "CONSIST_OF", direction: OUT)
+  shipped_from: [Supplier_Warehouse]
+    @relationship(type: "SHIPPED_FROM", direction: OUT)
+  has_dispute: [Dispute] @relationship(type: "HAS_DISPUTE", direction: OUT)
+  suppliers: [Supplier] @relationship(type: "ORDER", direction: IN)
+}
+
+type Client {
+  _id: BigInt!
+  name: String!
+  suppliers: [Supplier] @relationship(type: "HAS_CLIENT", direction: IN)
+}
+
+type Country {
+  _id: BigInt!
+  economyStatus: Float!
+  name: String!
+  politicalStatus: String!
+  taxRate: Float!
+  suppliers: [Supplier] @relationship(type: "HQ_IN", direction: IN)
+  supplier_warehouses: [Supplier_Warehouse]
+    @relationship(type: "LOCATED_IN", direction: IN)
+}
+
+type Request {
+  _id: BigInt!
+  requestId: String!
+  require: [Product]
+    @relationship(type: "REQUIRE", direction: OUT, properties: "require")
+  request_from: [DC]
+    @relationship(
+      type: "REQUEST_FROM"
+      direction: OUT
+      properties: "request_from"
+    )
+}
+
+type Contact {
+  _id: BigInt!
+  email: String!
+  name: String!
+  suppliers: [Supplier] @relationship(type: "HAS_EMPLOYEE", direction: IN)
+}
+
+type Supplier_Warehouse {
+  _id: BigInt!
+  address: String!
+  latitude: Float!
+  longitude: Float!
+  supplierWarehouseId: String!
+  located_in: [Country] @relationship(type: "LOCATED_IN", direction: OUT)
+  orders: [Order] @relationship(type: "SHIPPED_FROM", direction: IN)
+}
+
+type DC {
+  _id: BigInt!
+  name: String!
+  requests: [Request]
+    @relationship(
+      type: "REQUEST_FROM"
+      direction: IN
+      properties: "request_from"
+    )
+}
+
+type Dispute {
+  _id: BigInt!
+  name: String!
+}
+
+type Violation_Reason {
+  _id: BigInt!
+  violationReason: String!
+  suppliers: [Supplier]
+    @relationship(
+      type: "HAS_ENVIRONMENTAL_VIOLATION"
+      direction: IN
+      properties: "has_environmental_violation"
+    )
+}
+
+type ARTC_Warehouse {
+  _id: BigInt!
+  name: String!
+  has_inventory: [RawMaterial]
+    @relationship(
+      type: "HAS_INVENTORY"
+      direction: OUT
+      properties: "has_inventory"
+    )
+}
+
+type Asset {
+  _id: BigInt!
+  asset_ID: String!
+  input: [RawMaterial]
+    @relationship(type: "INPUT", direction: OUT, properties: "input")
+}
+
+type Supplier {
+  _id: BigInt!
+  address: String!
+  greenCertification: String
+  latitude: Float!
+  longitude: Float!
+  location: Point
+  name: String!
+  profitGrowth: Float!
+  has_employee: [Contact] @relationship(type: "HAS_EMPLOYEE", direction: OUT)
+  has_client: [Client] @relationship(type: "HAS_CLIENT", direction: OUT)
+  hq_in: [Country] @relationship(type: "HQ_IN", direction: OUT)
+  has_dispute: [Dispute] @relationship(type: "HAS_DISPUTE", direction: OUT)
+  has_environmental_violation: [Violation_Reason]
+    @relationship(
+      type: "HAS_ENVIRONMENTAL_VIOLATION"
+      direction: OUT
+      properties: "has_environmental_violation"
+    )
+  supply: [RawMaterial]
+    @relationship(type: "SUPPLY", direction: OUT, properties: "supply")
+  order: [Order] @relationship(type: "ORDER", direction: OUT)
+}
+
+interface require @relationshipProperties {
+  quantity: Float!
+}
+
+interface request_from @relationshipProperties {
+  dateRequested: String!
+  dueDAte: String!
+}
+
+interface has_environmental_violation @relationshipProperties {
+  fine: Float!
+  violationDate: String!
+}
+
+interface supply @relationshipProperties {
+  certification: String!
+  custodyChain: String!
+  expiry: String!
+  preferred: String!
+}
+
+interface has_inventory @relationshipProperties {
+  certification: String!
+  quantity: Float!
+}
+
+interface input @relationshipProperties {
+  status: String!
+}
